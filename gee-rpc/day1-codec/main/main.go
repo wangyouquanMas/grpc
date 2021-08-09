@@ -42,6 +42,7 @@ func main() {
 		}
 		_ = cc.Write(h, fmt.Sprintf("geerpc req %d", h.Seq))
 		_ = cc.ReadHeader(h)
+		// 设置解码内容为 ""
 		var reply string
 		_ = cc.ReadBody(&reply)
 		log.Println("reply:", reply)
