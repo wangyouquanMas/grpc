@@ -5,10 +5,10 @@
 package geerpc
 
 import (
+	"geerpc/codec"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"geerpc/codec"
 	"io"
 	"log"
 	"net"
@@ -25,6 +25,7 @@ type Call struct {
 	Done          chan *Call  // Strobes when call is complete.
 }
 
+//为了支持异步调用，Call 结构体中添加了一个字段 Done，Done 的类型是 chan *Call，当调用结束时，会调用 call.done() 通知调用方。
 func (call *Call) done() {
 	call.Done <- call
 }
@@ -36,12 +37,12 @@ func (call *Call) done() {
 type Client struct {
 	cc       codec.Codec
 	opt      *Option
-	sending  sync.Mutex // protect following
-	header   codec.Header
+	sending  sync.Mutex // protect following 保证请求的有序发送，即防止出现多个请求报文混淆。
+	header   codec.Header //header 只有在请求发送时才需要，而请求发送是互斥的，因此每个客户端只需要一个，声明在 Client 结构体中可以复用。
 	mu       sync.Mutex // protect following
 	seq      uint64
-	pending  map[uint64]*Call
-	closing  bool // user has called Close
+	pending  map[uint64]*Call //pending 存储未处理完的请求，键是编号，值是 Call 实例。
+	closing  bool // user has called Close   //closing 和 shutdown 任意一个值置为 true，则表示 Client 处于不可用的状态，但有些许的差别，closing 是用户主动关闭的，即调用 Close 方法，而 shutdown 置为 true 一般是有错误发生。
 	shutdown bool // server has told us to stop
 }
 
@@ -67,6 +68,7 @@ func (client *Client) IsAvailable() bool {
 	return !client.shutdown && !client.closing
 }
 
+//将参数 call 添加到 client.pending 中，并更新 client.seq。
 func (client *Client) registerCall(call *Call) (uint64, error) {
 	client.mu.Lock()
 	defer client.mu.Unlock()
@@ -78,7 +80,7 @@ func (client *Client) registerCall(call *Call) (uint64, error) {
 	client.seq++
 	return call.Seq, nil
 }
-
+//根据 seq，从 client.pending 中移除对应的 call，并返回。
 func (client *Client) removeCall(seq uint64) *Call {
 	client.mu.Lock()
 	defer client.mu.Unlock()
@@ -86,7 +88,7 @@ func (client *Client) removeCall(seq uint64) *Call {
 	delete(client.pending, seq)
 	return call
 }
-
+//服务端或客户端发生错误时调用，将 shutdown 设置为 true，且将错误信息通知所有 pending 状态的 call。
 func (client *Client) terminateCalls(err error) {
 	client.sending.Lock()
 	defer client.sending.Unlock()

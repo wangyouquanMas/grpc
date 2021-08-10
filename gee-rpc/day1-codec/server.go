@@ -7,7 +7,7 @@ package geerpc
 import (
 	"encoding/json"
 	"fmt"
-	"geerpc/codec"
+	"geerpc/day1-codec/codec"
 	"io"
 	"log"
 	"net"
@@ -19,7 +19,7 @@ const MagicNumber = 0x3bef5c
 
 type Option struct {
 	MagicNumber int        // MagicNumber marks this's a geerpc request
-	CodecType   codec.Type // client may choose different Codec to encode body
+	CodecType  codec.Type // client may choose different Codec to encode body
 }
 
 var DefaultOption = &Option{
@@ -124,7 +124,7 @@ func (server *Server) sendResponse(cc codec.Codec, h *codec.Header, body interfa
 
 func (server *Server) handleRequest(cc codec.Codec, req *request, sending *sync.Mutex, wg *sync.WaitGroup) {
 	// TODO, should call registered rpc methods to get the right replyv
-	// day 1, just print argv and send a hello message
+	// day 1, just print argv and send a hello msesage
 	defer wg.Done()
 	log.Println(req.h, req.argv.Elem())
 	req.replyv = reflect.ValueOf(fmt.Sprintf("geerpc resp %d", req.h.Seq))
