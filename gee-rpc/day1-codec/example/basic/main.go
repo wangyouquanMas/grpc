@@ -25,7 +25,7 @@ func main() {
 	// run in different processes.
 	var network bytes.Buffer        // Stand-in for a network connection
 	enc := gob.NewEncoder(&network) // Will write to network.
-	dec := gob.NewDecoder(&network) // Will read from network.
+	dec := gob.NewDecoder(&network) // Will read from network. //It encodes into buf, that's why you created the encoder with buf as the io.Writer
 
 	// Encode (send) some values.
 	err := enc.Encode(P{3, 4, 5, "Pythagoras"})
