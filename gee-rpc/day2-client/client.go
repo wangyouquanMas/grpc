@@ -5,10 +5,10 @@
 package geerpc
 
 import (
-	"geerpc/codec"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"geerpc/codec"
 	"io"
 	"log"
 	"net"
@@ -25,7 +25,7 @@ type Call struct {
 	Done          chan *Call  // Strobes when call is complete.
 }
 
-//为了支持异步调用，Call 结构体中添加了一个字段 Done，Done 的类型是 chan *Call，当调用结束时，会调用 call.done() 通知调用方。
+//为了支持异步调用，Call 结构体中添加了一个字段 Done，Done 的类型是 chan *Call，当调用结束时 【正常、错误】，会调用 call.done() 通知调用方。
 func (call *Call) done() {
 	call.Done <- call
 }
@@ -161,7 +161,7 @@ func (client *Client) receive() {
 }
 
 // Go invokes the function asynchronously.
-// It returns the Call structure representing the invocation.
+// It returns the Call structure representing the invocation.go   异步接口
 func (client *Client) Go(serviceMethod string, args, reply interface{}, done chan *Call) *Call {
 	if done == nil {
 		done = make(chan *Call, 10)
@@ -179,11 +179,31 @@ func (client *Client) Go(serviceMethod string, args, reply interface{}, done cha
 }
 
 // Call invokes the named function, waits for it to complete,
-// and returns its error status.
+// and returns its error status.   同步接口
 func (client *Client) Call(serviceMethod string, args, reply interface{}) error {
 	call := <-client.Go(serviceMethod, args, reply, make(chan *Call, 1)).Done
 	return call.Error
 }
+
+/*
+   Q1:client.GO这个异步接口该怎么调用？
+Go 返回了 call，call.Done 是一个信道(chan)，没有什么特别的地方，按照普通信道来处理就好了。比如直接阻塞就是同步调用，类似于 Call 里的做法，如果不想阻塞，新启动一个协程等待结果，其他函数继续往下执行。
+
+比如：
+
+call := client.Go( ... )
+# 新启动协程，异步等待
+go func(call *Call) {
+	select {
+		<-call.Done:
+		# do something
+		<-otherChan:
+		# do something
+	}
+}(call)
+
+otherFunc() # 不阻塞，继续执行其他函数*/
+
 
 func parseOptions(opts ...*Option) (*Option, error) {
 	// if opts is nil or pass nil as parameter
