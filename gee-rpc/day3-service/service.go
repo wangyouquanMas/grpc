@@ -7,17 +7,23 @@ import (
 	"sync/atomic"
 )
 
+/*
+ 通过反射实现 结构体与服务的映射关系
+*/
+
+//抽象出一个方法的完整信息： 方法本身、入参、出参
 type methodType struct {
 	method    reflect.Method
 	ArgType   reflect.Type
 	ReplyType reflect.Type
-	numCalls  uint64
+	numCalls  uint64  //后续统计方法调用次数时会用到
 }
 
 func (m *methodType) NumCalls() uint64 {
 	return atomic.LoadUint64(&m.numCalls)
 }
 
+//都要创建实例
 func (m *methodType) newArgv() reflect.Value {
 	var argv reflect.Value
 	// arg may be a pointer type, or a value type
