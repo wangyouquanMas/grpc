@@ -27,6 +27,7 @@ var DefaultOption = &Option{
 	CodecType:   codec.GobType,
 }
 
+// test
 // Server represents an RPC Server.
 type Server struct{}
 

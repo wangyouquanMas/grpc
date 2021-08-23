@@ -20,6 +20,8 @@ type methodType struct {
 }
 
 func (m *methodType) NumCalls() uint64 {
+	//atomic.LoadUint64（&addr）(val)
+	// 导出addr处值
 	return atomic.LoadUint64(&m.numCalls)
 }
 
